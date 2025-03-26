@@ -9,7 +9,6 @@ fi
 # Clean up previous runs
 rm -f cert_*.pem
 
-# Extract certificates directly into the current directory
 awk '
   /-----BEGIN CERTIFICATE-----/ {
     f = sprintf("cert_%02d.pem", n++);
@@ -26,11 +25,7 @@ for CERT in cert_*.pem; do
   SUBJECT=$(openssl x509 -in "$CERT" -noout -subject | sed 's/subject= //')
   ISSUER=$(openssl x509 -in "$CERT" -noout -issuer | sed 's/issuer= //')
 
-  # Normalize subject and issuer for reliable comparison
-  SUBJECT_NORM=$(echo "$SUBJECT" | tr -d '[:space:]')
-  ISSUER_NORM=$(echo "$ISSUER" | tr -d '[:space:]')
-
-  if [ "$SUBJECT_NORM" = "$ISSUER_NORM" ]; then
+  if openssl verify -CAfile "$CERT" "$CERT" 2>/dev/null | grep -q ": OK"; then
     FLAG="(SELF-SIGNED)"
   else
     FLAG=""
