@@ -6,13 +6,16 @@ if [ -z "$FILE" ]; then
   exit 1
 fi
 
+# Get base filename without extension
+BASE_NAME=$(basename "$FILE" .pem | sed 's/\.[^.]*$//')
+
 # Clean up previous runs
-rm -f cert_*.pem
+rm -f ${BASE_NAME}_cert_*.pem
 
 # Extract certificates directly into the current directory
-awk '
+awk -v prefix="${BASE_NAME}_cert_" '
   /-----BEGIN CERTIFICATE-----/ {
-    f = sprintf("cert_%02d.pem", n++); inside=1
+    f = sprintf("%s%02d.pem", prefix, n++); inside=1
   }
   inside {
     print > f
@@ -26,9 +29,9 @@ echo "Analyzing certificate chain in: $FILE"
 echo "---------------------------------------------"
 
 # Build the full CA file from all certs
-cat cert_*.pem > full_chain.pem
+cat ${BASE_NAME}_cert_*.pem > full_chain.pem
 
-for CERT in cert_*.pem; do
+for CERT in ${BASE_NAME}_cert_*.pem; do
   SUBJECT=$(openssl x509 -in "$CERT" -noout -subject | sed 's/subject= //')
   ISSUER=$(openssl x509 -in "$CERT" -noout -issuer | sed 's/issuer= //')
 
