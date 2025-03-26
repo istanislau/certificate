@@ -6,11 +6,18 @@ if [ -z "$FILE" ]; then
   exit 1
 fi
 
-mkdir -p tmp_cert_analysis
-cd tmp_cert_analysis || exit 1
+# Clean up previous runs
+rm -f cert_*.pem
 
-# Extract certificate blocks and save them into separate files
-awk 'BEGIN{n=0} /-----BEGIN CERTIFICATE-----/{f=sprintf("cert_%02d.pem", n++);} {print > f}' "../$FILE"
+# Extract certificates directly into the current directory
+awk '
+  /-----BEGIN CERTIFICATE-----/ {
+    f = sprintf("cert_%02d.pem", n++);
+  }
+  f != "" {
+    print > f
+  }
+' "$FILE"
 
 echo "Analyzing certificate chain in: $FILE"
 echo "---------------------------------------------"
@@ -30,6 +37,3 @@ for CERT in cert_*.pem; do
   echo "  Issuer : $ISSUER $FLAG"
   echo ""
 done
-
-cd ..
-rm -rf tmp_cert_analysis
