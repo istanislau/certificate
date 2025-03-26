@@ -26,7 +26,11 @@ for CERT in cert_*.pem; do
   SUBJECT=$(openssl x509 -in "$CERT" -noout -subject | sed 's/subject= //')
   ISSUER=$(openssl x509 -in "$CERT" -noout -issuer | sed 's/issuer= //')
 
-  if [ "$SUBJECT" = "$ISSUER" ]; then
+  # Normalize subject and issuer for reliable comparison
+  SUBJECT_NORM=$(echo "$SUBJECT" | tr -d '[:space:]')
+  ISSUER_NORM=$(echo "$ISSUER" | tr -d '[:space:]')
+
+  if [ "$SUBJECT_NORM" = "$ISSUER_NORM" ]; then
     FLAG="(SELF-SIGNED)"
   else
     FLAG=""
