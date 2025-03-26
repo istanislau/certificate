@@ -30,6 +30,7 @@ for CERT in cert_*.pem; do
   SUBJECT_NORM=$(echo "$SUBJECT" | tr -d '[:space:]')
   ISSUER_NORM=$(echo "$ISSUER" | tr -d '[:space:]')
   IS_SELF_SIGNED=""
+  WARNING=""
 
   # Check if the certificate validates itself
   if openssl verify -CAfile "$CERT" "$CERT" 2>/dev/null | grep -q ": OK"; then
@@ -40,6 +41,7 @@ for CERT in cert_*.pem; do
     fi
   elif [ "$SUBJECT_NORM" = "$ISSUER_NORM" ]; then
     IS_SELF_SIGNED="(SELF-SIGNED Not trusted as CA)"
+    WARNING="⚠️ Self-issued cert that fails verification — may trigger ORA-29024 or error 19"
   fi
 
   # Check for Basic Constraints and CA:TRUE (AIX-compatible)
@@ -56,5 +58,6 @@ for CERT in cert_*.pem; do
   echo "  Subject: $SUBJECT"
   echo "  Issuer : $ISSUER $IS_SELF_SIGNED"
   echo "  $CA_FLAG"
+  [ -n "$WARNING" ] && echo "  $WARNING"
   echo ""
 done
