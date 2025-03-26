@@ -12,10 +12,13 @@ rm -f cert_*.pem
 # Extract certificates directly into the current directory
 awk '
   /-----BEGIN CERTIFICATE-----/ {
-    f = sprintf("cert_%02d.pem", n++);
+    f = sprintf("cert_%02d.pem", n++); inside=1
   }
-  f != "" {
+  inside {
     print > f
+  }
+  /-----END CERTIFICATE-----/ {
+    inside=0
   }
 ' "$FILE"
 
