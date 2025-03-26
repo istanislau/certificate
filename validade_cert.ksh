@@ -26,21 +26,20 @@ for CERT in cert_*.pem; do
   SUBJECT=$(openssl x509 -in "$CERT" -noout -subject | sed 's/subject= //')
   ISSUER=$(openssl x509 -in "$CERT" -noout -issuer | sed 's/issuer= //')
 
-  # Detect if subject and issuer match
+  # Normalize subject and issuer for comparison
   SUBJECT_NORM=$(echo "$SUBJECT" | tr -d '[:space:]')
   ISSUER_NORM=$(echo "$ISSUER" | tr -d '[:space:]')
-  SELF_SIGNED_GUESS=false
-  if [ "$SUBJECT_NORM" = "$ISSUER_NORM" ]; then
-    SELF_SIGNED_GUESS=true
-  fi
+  IS_SELF_SIGNED=""
 
-  # Check if it's a valid self-signed CA
+  # Check if the certificate validates itself
   if openssl verify -CAfile "$CERT" "$CERT" 2>/dev/null | grep -q ": OK"; then
-    FLAG="(SELF-SIGNED)"
-  elif [ "$SELF_SIGNED_GUESS" = true ]; then
-    FLAG="(SELF-SIGNED Not trusted as CA)"
-  else
-    FLAG=""
+    if [ "$SUBJECT_NORM" = "$ISSUER_NORM" ]; then
+      IS_SELF_SIGNED="(SELF-SIGNED)"
+    else
+      IS_SELF_SIGNED="(Self-issued but not self-signed)"
+    fi
+  elif [ "$SUBJECT_NORM" = "$ISSUER_NORM" ]; then
+    IS_SELF_SIGNED="(SELF-SIGNED Not trusted as CA)"
   fi
 
   # Check for Basic Constraints and CA:TRUE (AIX-compatible)
@@ -55,7 +54,7 @@ for CERT in cert_*.pem; do
 
   echo "→ $CERT"
   echo "  Subject: $SUBJECT"
-  echo "  Issuer : $ISSUER $FLAG"
+  echo "  Issuer : $ISSUER $IS_SELF_SIGNED"
   echo "  $CA_FLAG"
   echo ""
 done
