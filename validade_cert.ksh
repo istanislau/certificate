@@ -9,7 +9,7 @@ fi
 # Clean up previous runs
 rm -f cert_*.pem
 
-
+# Extract certificates directly into the current directory
 awk '
   /-----BEGIN CERTIFICATE-----/ {
     f = sprintf("cert_%02d.pem", n++);
@@ -26,7 +26,7 @@ for CERT in cert_*.pem; do
   SUBJECT=$(openssl x509 -in "$CERT" -noout -subject | sed 's/subject= //')
   ISSUER=$(openssl x509 -in "$CERT" -noout -issuer | sed 's/issuer= //')
 
-
+  # Detect if subject and issuer match
   SUBJECT_NORM=$(echo "$SUBJECT" | tr -d '[:space:]')
   ISSUER_NORM=$(echo "$ISSUER" | tr -d '[:space:]')
   SELF_SIGNED_GUESS=false
@@ -34,7 +34,7 @@ for CERT in cert_*.pem; do
     SELF_SIGNED_GUESS=true
   fi
 
-
+  # Check if it's a valid self-signed CA
   if openssl verify -CAfile "$CERT" "$CERT" 2>/dev/null | grep -q ": OK"; then
     FLAG="(SELF-SIGNED)"
   elif [ "$SELF_SIGNED_GUESS" = true ]; then
@@ -43,8 +43,10 @@ for CERT in cert_*.pem; do
     FLAG=""
   fi
 
-  
-  BASIC_CONSTRAINTS=$(openssl x509 -in "$CERT" -text -noout | grep -A10 "X509v3 Basic Constraints" | grep "CA:" | awk -F: '{print $2}' | tr -d '[:space:]')
+  # Check for Basic Constraints and CA:TRUE (AIX-compatible)
+  BASIC_CONSTRAINTS=$(openssl x509 -in "$CERT" -text -noout | \
+    awk '/X509v3 Basic Constraints/,/X509v3/ { if ($0 ~ /CA:/) { gsub(/ /, "", $2); print $2 } }' | head -n1)
+
   if [ "$BASIC_CONSTRAINTS" = "TRUE" ]; then
     CA_FLAG="CA Capable: YES"
   else
