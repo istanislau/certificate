@@ -11,7 +11,7 @@ BASE_NAME=$(basename "$FILE" .pem | sed 's/\.[^.]*$//')
 
 # Clean up previous runs
 rm -f ${BASE_NAME}_cert_*.pem
-rm -f subjects.txt
+rm -f ${BASE_NAME}_subjects.txt
 
 # Extract certificates directly into the current directory
 awk -v prefix="${BASE_NAME}_cert_" '
@@ -36,7 +36,7 @@ for CERT in ${BASE_NAME}_cert_*.pem; do
   SUBJECT=$(openssl x509 -in "$CERT" -noout -subject | sed 's/subject= //')
   ISSUER=$(openssl x509 -in "$CERT" -noout -issuer | sed 's/issuer= //')
 
-  echo "$SUBJECT" >> subjects.txt
+  echo "$SUBJECT" | sed 's/^subject= //' >> ${BASE_NAME}_subjects.txt
 
   # Normalize subject and issuer for comparison
   SUBJECT_NORM=$(echo "$SUBJECT" | tr -d '[:space:]')
