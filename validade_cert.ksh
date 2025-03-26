@@ -33,10 +33,10 @@ echo "---------------------------------------------"
 cat ${BASE_NAME}_cert_*.pem > full_chain.pem
 
 for CERT in ${BASE_NAME}_cert_*.pem; do
-  SUBJECT=$(openssl x509 -in "$CERT" -noout -subject | sed 's/subject= //')
-  ISSUER=$(openssl x509 -in "$CERT" -noout -issuer | sed 's/issuer= //')
+  SUBJECT=$(openssl x509 -in "$CERT" -noout -subject | sed 's/^subject[= ]*//')
+  ISSUER=$(openssl x509 -in "$CERT" -noout -issuer | sed 's/^issuer[= ]*//')
 
-  echo "$SUBJECT" | sed 's/^subject= //' >> ${BASE_NAME}_subjects.txt
+  echo "$SUBJECT" >> ${BASE_NAME}_subjects.txt
 
   # Normalize subject and issuer for comparison
   SUBJECT_NORM=$(echo "$SUBJECT" | tr -d '[:space:]')
