@@ -25,6 +25,9 @@ awk '
 echo "Analyzing certificate chain in: $FILE"
 echo "---------------------------------------------"
 
+# Build the full CA file from all certs
+cat cert_*.pem > full_chain.pem
+
 for CERT in cert_*.pem; do
   SUBJECT=$(openssl x509 -in "$CERT" -noout -subject | sed 's/subject= //')
   ISSUER=$(openssl x509 -in "$CERT" -noout -issuer | sed 's/issuer= //')
@@ -36,7 +39,10 @@ for CERT in cert_*.pem; do
   WARNING=""
 
   # Check if the certificate validates itself
-  if openssl verify -CAfile "$CERT" "$CERT" 2>/dev/null | grep -q ": OK"; then
+  VERIFY_SELF=$(openssl verify -CAfile "$CERT" "$CERT" 2>&1)
+  VERIFY_CHAIN=$(openssl verify -CAfile full_chain.pem "$CERT" 2>&1)
+
+  if echo "$VERIFY_SELF" | grep -q ": OK"; then
     if [ "$SUBJECT_NORM" = "$ISSUER_NORM" ]; then
       IS_SELF_SIGNED="(SELF-SIGNED)"
     else
@@ -44,7 +50,7 @@ for CERT in cert_*.pem; do
     fi
   elif [ "$SUBJECT_NORM" = "$ISSUER_NORM" ]; then
     IS_SELF_SIGNED="(SELF-SIGNED Not trusted as CA)"
-    WARNING="⚠️ Self-issued cert that fails verification — may trigger ORA-29024 or error 19"
+    WARNING=" Self-issued cert that fails verification — may trigger ORA-29024 or error 19"
   fi
 
   # Check for Basic Constraints and CA:TRUE (AIX-compatible)
@@ -61,6 +67,8 @@ for CERT in cert_*.pem; do
   echo "  Subject: $SUBJECT"
   echo "  Issuer : $ISSUER $IS_SELF_SIGNED"
   echo "  $CA_FLAG"
+  echo "  OpenSSL self-verify: $VERIFY_SELF"
+  echo "  OpenSSL chain-verify (against full chain): $VERIFY_CHAIN"
   [ -n "$WARNING" ] && echo "  $WARNING"
   echo ""
 done
